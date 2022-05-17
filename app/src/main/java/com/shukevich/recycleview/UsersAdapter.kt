@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.shukevich.recycleview.databinding.ItemUserBinding
 import com.shukevich.recycleview.model.User
+import com.shukevich.recycleview.screens.UserListItem
 
 
 interface UserActionListener {
@@ -21,23 +22,21 @@ interface UserActionListener {
 
 }
 
+class UsersAdapter(
+    private val actionListener: UserActionListener
+) : RecyclerView.Adapter<UsersAdapter.UsersViewHolder>(), View.OnClickListener {
 
-class UsersAdapter(private val actionListener: UserActionListener) :
-    RecyclerView.Adapter<UsersAdapter.UsersViewHolder>(), View.OnClickListener {
-
-    var users: List<User> = emptyList()
+    var users: List<UserListItem> = emptyList()
         set(newValue) {
             field = newValue
             notifyDataSetChanged()
         }
 
-    class UsersViewHolder(val binding: ItemUserBinding) : RecyclerView.ViewHolder(binding.root)
-
-    override fun onClick(p0: View) {
-        val user = p0.tag as User
-        when (p0.id) {
+    override fun onClick(v: View) {
+        val user = v.tag as User
+        when (v.id) {
             R.id.moreImageViewButton -> {
-                showPopupMenu(p0)
+                showPopupMenu(v)
             }
             else -> {
                 actionListener.onUserDetails(user)
@@ -45,25 +44,34 @@ class UsersAdapter(private val actionListener: UserActionListener) :
         }
     }
 
-
     override fun getItemCount(): Int = users.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UsersViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         val binding = ItemUserBinding.inflate(inflater, parent, false)
 
-        binding.root.setOnClickListener(this)
         binding.moreImageViewButton.setOnClickListener(this)
 
         return UsersViewHolder(binding)
     }
 
-    // у автора with
     override fun onBindViewHolder(holder: UsersViewHolder, position: Int) {
-        val user = users[position]
-        holder.binding.apply {
+        val userListItem = users[position]
+        val user = userListItem.user
+
+        with(holder.binding) {
             holder.itemView.tag = user
             moreImageViewButton.tag = user
+
+            if (userListItem.isInProgress) {
+                moreImageViewButton.visibility = View.INVISIBLE
+                itemProgressBar.visibility = View.VISIBLE
+                holder.binding.root.setOnClickListener(null)
+            } else {
+                moreImageViewButton.visibility = View.VISIBLE
+                itemProgressBar.visibility = View.GONE
+                holder.binding.root.setOnClickListener(this@UsersAdapter)
+            }
 
             userNameTextView.text = user.name
             userCompanyTextView.text = user.company
@@ -75,25 +83,29 @@ class UsersAdapter(private val actionListener: UserActionListener) :
                     .error(R.drawable.ic_user_avatar)
                     .into(photoImageView)
             } else {
+                Glide.with(photoImageView.context).clear(photoImageView)
                 photoImageView.setImageResource(R.drawable.ic_user_avatar)
+                // you can also use the following code instead of these two lines ^
+                // Glide.with(photoImageView.context)
+                //        .load(R.drawable.ic_user_avatar)
+                //        .into(photoImageView)
             }
         }
     }
 
     private fun showPopupMenu(view: View) {
         val popupMenu = PopupMenu(view.context, view)
+        val context = view.context
         val user = view.tag as User
-        val position = users.indexOfFirst { it.id == user.id }
+        val position = users.indexOfFirst { it.user.id == user.id }
 
-        popupMenu.menu.add(0, ID_MOVE_UP, Menu.NONE, view.context.getString(R.string.move_up))
-            .apply {
-                isEnabled = position > 0
-            }
-        popupMenu.menu.add(0, ID_MOVE_DOWN, Menu.NONE, view.context.getString(R.string.move_down))
-            .apply {
-                isEnabled = position < users.size - 1
-            }
-        popupMenu.menu.add(0, ID_REMOVE, Menu.NONE, view.context.getString(R.string.remove))
+        popupMenu.menu.add(0, ID_MOVE_UP, Menu.NONE, context.getString(R.string.move_up)).apply {
+            isEnabled = position > 0
+        }
+        popupMenu.menu.add(0, ID_MOVE_DOWN, Menu.NONE, context.getString(R.string.move_down)).apply {
+            isEnabled = position < users.size - 1
+        }
+        popupMenu.menu.add(0, ID_REMOVE, Menu.NONE, context.getString(R.string.remove))
 
         popupMenu.setOnMenuItemClickListener {
             when (it.itemId) {
@@ -112,6 +124,10 @@ class UsersAdapter(private val actionListener: UserActionListener) :
 
         popupMenu.show()
     }
+
+    class UsersViewHolder(
+        val binding: ItemUserBinding
+    ) : RecyclerView.ViewHolder(binding.root)
 
     companion object {
         private const val ID_MOVE_UP = 1

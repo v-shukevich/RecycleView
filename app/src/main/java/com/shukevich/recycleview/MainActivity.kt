@@ -5,10 +5,10 @@ import android.os.Bundle
 import android.widget.Toast
 
 import com.shukevich.recycleview.databinding.ActivityMainBinding
-import com.shukevich.recycleview.screens.UserListFragment
 import com.shukevich.recycleview.model.User
 import com.shukevich.recycleview.screens.Navigator
 import com.shukevich.recycleview.screens.UserDetailsFragment
+import com.shukevich.recycleview.screens.UsersListFragment
 
 
 class MainActivity : AppCompatActivity(), Navigator {
@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity(), Navigator {
 
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
-                .add(R.id.fragmentContainer, UserListFragment())
+                .add(R.id.fragmentContainer, UsersListFragment())
                 .commit()
         }
 
